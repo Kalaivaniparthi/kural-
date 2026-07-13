@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thozhil Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          boxShadow: {
+            sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+          },
+          colors: {
+            thz: {
+              teal: '#0F766E',
+              amber: '#F59E0B',
+              bg: '#F8FAFC'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Manrope', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+  <!-- Recharts via UMD is non-trivial; for MVP we use lightweight inline SVG bars -->
+
+  <style>
+    .pulse-dot { animation: pulse 1.2s infinite ease-in-out; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.7; }
+    }
+    .sidebar-collapsed .sidebar-label { display:none; }
+    .sidebar-collapsed .sidebar-item { justify-content:center !important; }
+    .sidebar-collapsed .sidebar-accordion-indicator { display:none; }
+    .scrollbar-thin::-webkit-scrollbar { width: 8px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(15,118,110,0.25); border-radius: 999px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    /* Skeleton shimmer */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, rgba(15,118,110,0.06), rgba(245,158,11,0.10), rgba(15,118,110,0.06));
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+    }
+  </style>
+</head>
+<body class="bg-thz-bg text-slate-900 font-sans">
+  <div class="min-h-screen flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-72 md:w-72 lg:w-72 bg-white border-r border-slate-200">
+      <div class="h-16 flex items-center gap-3 px-4 border-b border-slate-200">
+        <div class="h-10 w-10 rounded-xl bg-thz-teal/10 flex items-center justify-center text-thz-teal font-extrabold">T</div>
+        <div class="min-w-0">
+          <div class="font-extrabold text-lg leading-tight">Thozhil</div>
+          <div class="text-xs text-slate-600">Voice-First Hiring</div>
+        </div>
+        <button id="sidebarToggle" class="ml-auto md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-slate-100">
+          <i data-feather="chevrons-left" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <nav class="p-3" aria-label="Admin navigation">
+        <ul class="space-y-1">
+          <li>
+            <button data-page="dashboard" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-thz-teal/10 text-thz-teal font-semibold">
+              <i data-feather="layout-dashboard" class="w-5 h-5"></i>
+              <span class="sidebar-label">Dashboard</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="live-calls" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="phone" class="w-5 h-5"></i>
+              <span class="sidebar-label">Live Calls</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="jobs" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="briefcase" class="w-5 h-5"></i>
+              <span class="sidebar-label">Job Listings</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="workers" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="users" class="w-5 h-5"></i>
+              <span class="sidebar-label">Workers</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="employers" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="building" class="w-5 h-5"></i>
+              <span class="sidebar-label">Employers</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="call-logs" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="file-text" class="w-5 h-5"></i>
+              <span class="sidebar-label">Call Logs</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="reports" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="bar-chart-2" class="w-5 h-5"></i>
+              <span class="sidebar-label">Reports</span>
+            </button>
+          </li>
+          <li>
+            <button data-page="settings" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+              <i data-feather="settings" class="w-5 h-5"></i>
+              <span class="sidebar-label">Settings</span>
+            </button>
+          </li>
+        </ul>
+
+        <div class="mt-5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+          <div class="flex items-start gap-3">
+            <div class="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+              <i data-feather="activity" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-sm">Urgent queue</div>
+              <div class="text-xs text-slate-600">Pending verifications + active calls</div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 min-w-0">
+      <!-- Top bar (sticky) -->
+      <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+        <div class="h-16 px-4 flex items-center gap-3">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="md:hidden">
+              <button id="mobileSidebarToggle" class="inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-slate-100">
+                <i data-feather="menu" class="w-5 h-5"></i>
+              </button>
+            </div>
+            <div class="hidden md:flex items-center gap-2">
+              <div class="h-9 w-9 rounded-xl bg-thz-teal/10 flex items-center justify-center text-thz-teal font-extrabold">T</div>
+              <div class="leading-tight">
+                <div class="font-extrabold">Thozhil</div>
+                <div class="text-xs text-slate-600">Voice-First Hiring</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 w-full max-w-2xl">
+              <i data-feather="search" class="w-4 h-4 text-slate-500"></i>
+              <input id="globalSearch" class="bg-transparent outline-none text-sm w-full" placeholder="Search by Job ID, Worker Phone, or Employer" />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <!-- Live Call Status Indicator -->
+            <div class="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
+              <span class="inline-flex items-center gap-2">
+                <span class="relative">
+                  <span class="absolute inset-0 rounded-full pulse-dot bg-emerald-400/50" style="width:10px;height:10px;left:50%;top:50%;transform:translate(-50%,-50%);"></span>
+                  <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                </span>
+                <span class="text-sm font-semibold">2 calls active</span>
+              </span>
+            </div>
+
+            <!-- Admin Profile -->
+            <button class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-2xl hover:bg-slate-100 border border-slate-200">
+              <div class="h-8 w-8 rounded-full bg-thz-teal/10 text-thz-teal font-bold flex items-center justify-center">OM</div>
+              <div class="text-left leading-tight">
+                <div class="text-sm font-semibold">Ops Manager</div>
+                <div class="text-xs text-slate-600">Online</div>
+              </div>
+            </button>
+
+            <button id="logout" class="px-3 py-2 rounded-2xl bg-thz-teal text-white hover:opacity-90 text-sm font-semibold">
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard content -->
+      <section class="p-4 md:p-6">
+        <div class="max-w-7xl mx-auto">
+          <!-- Priority strip -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-700">Live Call Status</div>
+                  <div class="text-2xl font-extrabold mt-1">Mission Control</div>
+                  <div class="text-xs text-slate-600 mt-1">Real-time IVR monitor for active callers</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-dot"></span>
+                    <span class="text-sm font-bold text-emerald-700">2</span>
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="rounded-xl border border-slate-200 p-3">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="text-sm font-bold">Caller: +91 98765 43210</div>
+                    <span class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">Step 3</span>
+                  </div>
+                  <div class="text-xs text-slate-600 mt-1">Asking for Wage</div>
+                  <button disabled class="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 text-slate-500 py-2 text-sm font-semibold">
+                    <i data-feather="earphones" class="w-4 h-4"></i>
+                    Listen-In
+                  </button>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 p-3">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="text-sm font-bold">Caller: +91 90000 11223</div>
+                    <span class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">Step 5</span>
+                  </div>
+                  <div class="text-xs text-slate-600 mt-1">Confirming Preferred Work</div>
+                  <button disabled class="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 text-slate-500 py-2 text-sm font-semibold">
+                    <i data-feather="earphones" class="w-4 h-4"></i>
+                    Listen-In
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-700">Pending Employer Verifications</div>
+                  <div class="text-2xl font-extrabold mt-1">Queue</div>
+                  <div class="text-xs text-slate-600 mt-1">Urgent actions required</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-2xl">8 requires action</span>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-2">
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200">
+                  <div class="min-w-0">
+                    <div class="text-sm font-bold">Sundaram Constructions</div>
+                    <div class="text-xs text-slate-600">Employer ID: EMP-2041</div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="px-3 py-2 rounded-xl bg-thz-teal text-white text-sm font-semibold hover:opacity-90">Verify</button>
+                    <button class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold hover:bg-slate-200">Reject</button>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200">
+                  <div class="min-w-0">
+                    <div class="text-sm font-bold">Arun Delivery Services</div>
+                    <div class="text-xs text-slate-600">Employer ID: EMP-2077</div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="px-3 py-2 rounded-xl bg-thz-teal text-white text-sm font-semibold hover:opacity-90">Verify</button>
+                    <button class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold hover:bg-slate-200">Reject</button>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200">
+                  <div class="min-w-0">
+                    <div class="text-sm font-bold">Meenakshi Tailors</div>
+                    <div class="text-xs text-slate-600">Employer ID: EMP-2120</div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="px-3 py-2 rounded-xl bg-thz-teal text-white text-sm font-semibold hover:opacity-90">Verify</button>
+                    <button class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold hover:bg-slate-200">Reject</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPIs + Widgets: Mission Control grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Row 1 KPIs -->
+            <div class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-thz-teal/90">Total Active Jobs</div>
+                  <div class="text-3xl font-extrabold mt-2">147</div>
+                  <div class="text-xs font-semibold text-emerald-700 mt-1">↑ 12% from yesterday</div>
+                </div>
+                <div class="h-10 w-10 rounded-xl bg-thz-teal/10 flex items-center justify-center text-thz-teal">
+                  <i data-feather="briefcase" class="w-5 h-5"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-amber-600">Workers Registered Today</div>
+                  <div class="text-3xl font-extrabold mt-2">34</div>
+                  <div class="text-xs font-semibold text-slate-700 mt-1">IVR calls completed</div>
+                </div>
+                <div class="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                  <i data-feather="mic" class="w-5 h-5"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Unverified Employers</div>
+                  <div class="text-3xl font-extrabold mt-2">8</div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-bold bg-amber-50 border border-amber-200 text-amber-700">Requires action</span>
+                  </div>
+                </div>
+                <div class="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600">
+                  <i data-feather="shield-alert" class="w-5 h-5"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Average Daily Wage (TN)</div>
+                  <div class="text-3xl font-extrabold mt-2">₹654</div>
+                  <div class="text-xs font-semibold text-slate-700 mt-1">Market rate</div>
+                </div>
+                <div class="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-700">
+                  <i data-feather="trending-up" class="w-5 h-5"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2 Widget 5 (Bar chart) -->
+            <div class="lg:col-span-7 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-700">Hires by Job Category</div>
+                  <div class="text-xs text-slate-600 mt-1">Top 5 skills (placeholder)</div>
+                </div>
+                <div class="text-xs font-bold text-thz-teal bg-thz-teal/10 border border-thz-teal/20 px-3 py-2 rounded-2xl">Updated just now</div>
+              </div>
+
+              <div class="mt-4">
+                <div class="space-y-3">
+                  <!-- Horizontal bar chart via divs -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span>Driver (ஓட்டுனர்)</span><span>40</span>
+                    </div>
+                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full bg-thz-teal w-[80%] rounded-full"></div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span>Mason (மசான்)</span><span>28</span>
+                    </div>
+                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full bg-amber-400 w-[56%] rounded-full"></div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span>Tailor (தையலர்)</span><span>22</span>
+                    </div>
+                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full bg-indigo-500 w-[44%] rounded-full"></div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span>Delivery Helper (டெலிவரி)</span><span>18</span>
+                    </div>
+                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full bg-purple-500 w-[36%] rounded-full"></div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span>Domestic Cook (சமையலர்)</span><span>16</span>
+                    </div>
+                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full bg-cyan-500 w-[32%] rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2 Widget 6 (Heatmap list) -->
+            <div class="lg:col-span-5 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-700">Chennai Hyperlocal Heatmap</div>
+                  <div class="text-xs text-slate-600 mt-1">Static map/list clusters</div>
+                </div>
+                <div class="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl">Clusters: 4</div>
+              </div>
+
+              <div class="mt-4">
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div class="text-xs font-semibold text-slate-700">Map (visual placeholder)</div>
+                  <div class="mt-3 grid grid-cols-2 gap-2">
+                    <div class="rounded-lg bg-thz-teal/20 h-20 flex items-center justify-center font-bold text-thz-teal">TNagar</div>
+                    <div class="rounded-lg bg-amber-200/40 h-20 flex items-center justify-center font-bold text-amber-700">Tambaram</div>
+                    <div class="rounded-lg bg-indigo-200/40 h-20 flex items-center justify-center font-bold text-indigo-700">Adyar</div>
+                    <div class="rounded-lg bg-purple-200/40 h-20 flex items-center justify-center font-bold text-purple-700">Velachery</div>
+                  </div>
+                </div>
+
+                <div class="mt-3 space-y-2">
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="font-semibold">T. Nagar</div>
+                    <div class="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded-full">12 jobs</div>
+                  </div>
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="font-semibold">Tambaram</div>
+                    <div class="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded-full">8 jobs</div>
+                  </div>
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="font-semibold">Adyar</div>
+                    <div class="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded-full">5 jobs</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3 Activity Feed (full width) -->
+            <div class="lg:col-span-12 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-700">Recent Matching Activity</div>
+                  <div class="text-xs text-slate-600 mt-1">Listen to calls for quick spot-checks (🎧)</div>
+                </div>
+                <button id="simulateLoad" class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm font-semibold">
+                  <i data-feather="refresh-cw" class="w-4 h-4"></i>
+                  Simulate Loading
+                </button>
+              </div>
+
+              <div id="jobsEmpty" class="hidden mt-4">
+                <div class="flex items-center gap-4 p-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 34c-5 0-9-4-9-9 0-5 4-9 9-9 3 0 5 1 7 3" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M46 34c5 0 9-4 9-9 0-5-4-9-9-9-3 0-5 1-7 3" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M20 40c6 6 18 6 24 0" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M23 44l-3 11" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M41 44l3 11" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/>
+                  </svg>
+                  <div>
+                    <div class="font-extrabold text-lg">No active jobs right now. Post the first one!</div>
+                    <div class="text-sm text-slate-600 mt-1">Operations will see this state when the queue is empty.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="activityTable" class="mt-4 overflow-x-auto">
+                <table class="min-w-[900px] w-full">
+                  <thead class="text-left">
+                    <tr class="text-xs text-slate-500">
+                      <th class="py-2 pr-3 font-semibold">Time</th>
+                      <th class="py-2 pr-3 font-semibold">Worker Name</th>
+                      <th class="py-2 pr-3 font-semibold">Job Title</th>
+                      <th class="py-2 pr-3 font-semibold">Status</th>
+                      <th class="py-2 font-semibold">Listen</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activityRows" class="divide-y divide-slate-200 text-sm">
+                    <tr class="hover:bg-slate-50">
+                      <td class="py-3 pr-3 text-slate-700">09:12</td>
+                      <td class="py-3 pr-3 font-semibold">குமரன் (Kumaran)</td>
+                      <td class="py-3 pr-3 text-slate-700">Driver (ஓட்டுனர்)</td>
+                      <td class="py-3 pr-3">
+                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">Matched</span>
+                      </td>
+                      <td class="py-3">
+                        <button class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-thz-teal text-white text-xs font-bold" title="Listen to call">
+                          <span>🎧</span><span>Play</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <td class="py-3 pr-3 text-slate-700">08:56</td>
+                      <td class="py-3 pr-3 font-semibold">சரவணன் (Saravanan)</td>
+                      <td class="py-3 pr-3 text-slate-700">Mason (மசான்)</td>
+                      <td class="py-3 pr-3">
+                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-bold bg-slate-50 border border-slate-200 text-slate-700">Interview Scheduled</span>
+                      </td>
+                      <td class="py-3">
+                        <button class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold" disabled>
+                          <span>🎧</span><span>Play</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <td class="py-3 pr-3 text-slate-700">08:21</td>
+                      <td class="py-3 pr-3 font-semibold">முத்து (Muthu)</td>
+                      <td class="py-3 pr-3 text-slate-700">Domestic Cook (சமையலர்)</td>
+                      <td class="py-3 pr-3">
+                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-bold bg-slate-50 border border-slate-200 text-slate-700">Rejected</span>
+                      </td>
+                      <td class="py-3">
+                        <button class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold" disabled>
+                          <span>🎧</span><span>Play</span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div id="activitySkeleton" class="hidden mt-4 space-y-3">
+                <div class="h-10 skeleton rounded-xl"></div>
+                <div class="h-10 skeleton rounded-xl"></div>
+                <div class="h-10 skeleton rounded-xl"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toastHost" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+  <script>
+    feather.replace();
+
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+
+    // Collapsible sidebar for mobile
+    function toggleMobileSidebar() {
+      sidebar.classList.toggle('hidden');
+    }
+
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('sidebar-collapsed');
+      });
+    }
+
+    if (mobileSidebarToggle) {
+      mobileSidebarToggle.addEventListener('click', toggleMobileSidebar);
+    }
+
+    // Global search placeholder
+    const search = document.getElementById('globalSearch');
+    search.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        pushToast('Search is a UI placeholder for MVP', 'amber');
+      }
+    });
+
+    // Logout
+    document.getElementById('logout').addEventListener('click', () => pushToast('Logout placeholder (no backend)', 'amber'));
+
+    // Toast helper
+    function pushToast(message, tone) {
+      const host = document.getElementById('toastHost');
+      const el = document.createElement('div');
+      const toneMap = {
+        emerald: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+        amber: 'bg-amber-50 border-amber-200 text-amber-800'
+      };
+      const cls = toneMap[tone] || toneMap.emerald;
+      el.className = `max-w-md px-4 py-3 rounded-2xl border ${cls} shadow-sm`;
+      el.innerHTML = `<div class="font-bold text-sm">${tone === 'amber' ? 'Notice' : 'Success'}</div><div class="text-xs mt-1">${escapeHtml(message)}</div>`;
+      host.appendChild(el);
+      setTimeout(() => {
+        el.style.transition = 'opacity 200ms ease';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 220);
+      }, 2400);
+    }
+
+    function escapeHtml(s) {
+      return (s + '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '<')
+        .replaceAll('>', '>')
+        .replaceAll('"', '"')
+        .replaceAll("'", '&#039;');
+    }
+
+    // Simulate loading skeleton
+    const simulateLoad = document.getElementById('simulateLoad');
+    const activityTable = document.getElementById('activityTable');
+    const activitySkeleton = document.getElementById('activitySkeleton');
+
+    simulateLoad.addEventListener('click', () => {
+      // simple toggle
+      activityTable.classList.add('hidden');
+      activitySkeleton.classList.remove('hidden');
+      setTimeout(() => {
+        activitySkeleton.classList.add('hidden');
+        activityTable.classList.remove('hidden');
+        pushToast('Dashboard refreshed (placeholder data)', 'emerald');
+      }, 1200);
+    });
+
+    // Verify/Reject buttons placeholder
+    document.querySelectorAll('button').forEach((btn) => {
+      const t = btn.textContent.trim().toLowerCase();
+      if (t === 'verify' || t === 'reject') {
+        btn.addEventListener('click', () => {
+          pushToast(btn.innerText + ' clicked for MVP', 'emerald');
+        });
+      }
+    });
+
+    // Sidebar page buttons placeholder highlight
+    document.querySelectorAll('[data-page]').forEach((b) => {
+      b.addEventListener('click', () => {
+        pushToast('Navigation is a UI placeholder for MVP', 'amber');
+      });
+    });
+
+    // Play buttons placeholder
+    document.querySelectorAll('button[title="Listen to call"]').forEach((b) => {
+      b.addEventListener('click', () => pushToast('Call playback is disabled in MVP', 'amber'));
+    });
+  </script>
+
+  <!-- Mobile default: show sidebar; hide on small screens when toggled -->
+  <script>
+    function applyResponsiveSidebar() {
+      const w = window.innerWidth;
+      if (w < 768) {
+        // allow toggle, keep sidebar visible initially
+        // do nothing
+      } else {
+        sidebar.classList.remove('hidden');
+      }
+    }
+    window.addEventListener('resize', applyResponsiveSidebar);
+    applyResponsiveSidebar();
+  </script>
+</body>
+</html>
+
